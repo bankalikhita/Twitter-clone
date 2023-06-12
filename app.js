@@ -24,6 +24,28 @@ const initializedb = async () => {
 };
 initializedb();
 
+//middleware//
+const authenticateToken = (request, response, next) => {
+  let jwtToken;
+  const authHeader = request.headers["authorization"];
+  if (authHeader !== undefined) {
+    jwtToken = authHeader.split(" ")[1];
+  }
+  if (jwtToken === undefined) {
+    response.status(401);
+    response.send("Invalid JWT Token");
+  } else {
+    jwt.verify(jwtToken, "secret", async (error, payload) => {
+      if (error) {
+        response.status(401);
+        response.send("Invalid JWT Token");
+      } else {
+        next();
+      }
+    });
+  }
+};
+
 //api1//
 app.post("/register/", async (request, response) => {
   const { username, password, name, gender } = request.body;
@@ -58,7 +80,7 @@ app.post("/login/", async (request, response) => {
     const pwdmatch = await bcrypt.compare(password, checkuser.password);
     if (pwdmatch === true) {
       const payload = { username: username };
-      const jwtToken = jwt.sign(payload, "secret");
+      let jwtToken = jwt.sign(payload, "secret");
       console.log(jwtToken);
       response.status(200);
       response.send({ jwtToken });
@@ -67,5 +89,13 @@ app.post("/login/", async (request, response) => {
       response.send("Invalid password");
     }
   }
+});
+
+//api3//
+app.get("/user/tweets/feed/", authenticateToken, async (request, response) => {
+  const { user } = request.params;
+  const userfollowing = `select * from user NATURAL JOIN follower where user.user_id=follower_user_id;`;
+  const getfollowinglist = await db.all(userfollowing);
+  response.send(getfollowinglist);
 });
 module.exports = app;
