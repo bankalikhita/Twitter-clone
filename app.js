@@ -45,4 +45,27 @@ app.post("/register/", async (request, response) => {
     response.send("User already exists");
   }
 });
+
+//api2//
+app.post("/login/", async (request, response) => {
+  const { username, password } = request.body;
+  const checkuserquery = `select * from user where username='${username}';`;
+  const checkuser = await db.get(checkuserquery);
+  if (checkuser === undefined) {
+    response.status(400);
+    response.send("Invalid user");
+  } else {
+    const pwdmatch = await bcrypt.compare(password, checkuser.password);
+    if (pwdmatch === true) {
+      const payload = { username: username };
+      const jwtToken = jwt.sign(payload, "secret");
+      console.log(jwtToken);
+      response.status(200);
+      response.send({ jwtToken });
+    } else {
+      response.status(400);
+      response.send("Invalid password");
+    }
+  }
+});
 module.exports = app;
