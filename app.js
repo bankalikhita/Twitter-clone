@@ -137,7 +137,7 @@ app.get("/tweets/:tweetId/", authenticateToken, async (request, response) => {
   let { tweetId } = request.params;
   const allnames = `SELECT * FROM follower INNER JOIN user on follower_user_id =user.user_id where user.username='${username}' AND following_user_id = (SELECT user_id FROM tweet WHERE tweet_id = ${tweetId});`;
   const dbres = await db.all(allnames);
-  if (err) {
+  if (dbres === null) {
     response.status(401);
     response.send("Invalid Request");
   } else {
@@ -147,4 +147,23 @@ app.get("/tweets/:tweetId/", authenticateToken, async (request, response) => {
   }
 });
 
+//api9//
+app.get("/user/tweets/", authenticateToken, async (request, response) => {
+  let { username } = request;
+  const alltweetsq = `select tweet,count(like_id) as likes,count(reply_id) as replies,date_time as dateTime from tweet LEFT JOIN like on like.tweet_id=tweet.tweet_id LEFT JOIN reply on reply.tweet_id=tweet.tweet_id INNER JOIN user on tweet.user_id=user.user_id where user.username='${username}' GROUP BY tweet.tweet_id ORDER BY tweet.date_time DESC;`;
+  const alltweetsdb = await db.all(alltweetsq);
+  response.send(alltweetsdb);
+});
+
+//api10//
+app.post("/user/tweets/", authenticateToken, async (request, response) => {
+  let { username } = request;
+  const { tweet } = request.body;
+  const usernq = `select user_id from user where username='${username}';`;
+  const usernqdb = await db.get(usernq);
+  console.log(usernqdb.user_id);
+  const ctq = `Insert into tweet (tweet_id,tweet,user_id,date_time) values('${tweet}') where tweet.user_id=usernqdb.user_id;`;
+  const ctdb = await db.run(ctq);
+  response.send("Created a Tweet");
+});
 module.exports = app;
