@@ -95,10 +95,55 @@ app.post("/login/", async (request, response) => {
 //api3//
 app.get("/user/tweets/feed/", authenticateToken, async (request, response) => {
   let { username } = request;
-  const followinguseridsandtweets = `select username,following_user_id from user join follower AS followingslist where user.username='${username}';`;
+  const followinguseridsandtweets = `SELECT u.username,t.tweet, t.date_time as dateTime
+FROM tweet AS t
+INNER JOIN Follower AS f ON f.following_user_id = t.user_id
+INNER JOIN User AS u ON u.user_id = f.following_user_id
+INNER JOIN User AS u2 ON u2.user_id = f.follower_user_id
+WHERE u2.username = '${username}'
+ORDER BY t.date_time DESC
+LIMIT 4;`;
   const dbres = await db.all(followinguseridsandtweets);
-  const tweetq = `select username,tweet,date_time from followingslist join tweet where following_user_id=tweet.user_id;`;
-  const tweetlist = await db.all(tweetq);
-  response.send(tweetlist);
+  response.send(dbres);
 });
+
+//api4//
+app.get("/user/following/", authenticateToken, async (request, response) => {
+  let { username } = request;
+  const allnames = `SELECT u.name
+    FROM User AS u
+    INNER JOIN Follower AS f ON f.following_user_id = u.user_id
+    INNER JOIN User AS u2 ON u2.user_id = f.follower_user_id
+    WHERE u2.username ='${username}';`;
+  const dbres = await db.all(allnames);
+  response.send(dbres);
+});
+
+//api5//
+app.get("/user/followers/", authenticateToken, async (request, response) => {
+  let { username } = request;
+  const allnames = `SELECT u.name
+    FROM User AS u
+    INNER JOIN Follower AS f ON f.follower_user_id = u.user_id
+    INNER JOIN User AS u2 ON u2.user_id = f.following_user_id
+    WHERE u2.username ='${username}';`;
+  const dbres = await db.all(allnames);
+  response.send(dbres);
+});
+
+//api6//
+app.get("/tweets/:tweetId/", authenticateToken, async (request, response) => {
+  let { username } = request;
+  let { tweetId } = request.params;
+  const allnames = `SELECT t.tweet, count(l.like_id), t.replies, t.date_time AS dateTime FROM tweet AS t
+    INNER JOIN user AS u ON u.user_id = t.user_id
+     INNER JOIN like AS l ON u.user_id = l.user_id
+    INNER JOIN follower AS f ON f.following_user_id = u.user_id
+    INNER JOIN user AS u2 ON u2.user_id = f.follower_user_id
+    WHERE t.tweet_id = ${tweetId} AND u2.username = '${username}'
+ORDER BY t.date_time DESC;`;
+  const dbres = await db.all(allnames);
+  response.send(dbres);
+});
+
 module.exports = app;
