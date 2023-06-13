@@ -40,6 +40,7 @@ const authenticateToken = (request, response, next) => {
         response.status(401);
         response.send("Invalid JWT Token");
       } else {
+        request.username = payload.username;
         next();
       }
     });
@@ -93,9 +94,11 @@ app.post("/login/", async (request, response) => {
 
 //api3//
 app.get("/user/tweets/feed/", authenticateToken, async (request, response) => {
-  const { user } = request.params;
-  const userfollowing = `select * from user NATURAL JOIN follower where user.user_id=follower_user_id;`;
-  const getfollowinglist = await db.all(userfollowing);
-  response.send(getfollowinglist);
+  let { username } = request;
+  const followinguseridsandtweets = `select username,following_user_id from user join follower AS followingslist where user.username='${username}';`;
+  const dbres = await db.all(followinguseridsandtweets);
+  const tweetq = `select username,tweet,date_time from followingslist join tweet where following_user_id=tweet.user_id;`;
+  const tweetlist = await db.all(tweetq);
+  response.send(tweetlist);
 });
 module.exports = app;
