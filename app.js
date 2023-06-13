@@ -135,15 +135,16 @@ app.get("/user/followers/", authenticateToken, async (request, response) => {
 app.get("/tweets/:tweetId/", authenticateToken, async (request, response) => {
   let { username } = request;
   let { tweetId } = request.params;
-  const allnames = `SELECT t.tweet, count(l.like_id), t.replies, t.date_time AS dateTime FROM tweet AS t
-    INNER JOIN user AS u ON u.user_id = t.user_id
-     INNER JOIN like AS l ON u.user_id = l.user_id
-    INNER JOIN follower AS f ON f.following_user_id = u.user_id
-    INNER JOIN user AS u2 ON u2.user_id = f.follower_user_id
-    WHERE t.tweet_id = ${tweetId} AND u2.username = '${username}'
-ORDER BY t.date_time DESC;`;
+  const allnames = `SELECT * FROM follower INNER JOIN user on follower_user_id =user.user_id where user.username='${username}' AND following_user_id = (SELECT user_id FROM tweet WHERE tweet_id = ${tweetId});`;
   const dbres = await db.all(allnames);
-  response.send(dbres);
+  if (err) {
+    response.status(401);
+    response.send("Invalid Request");
+  } else {
+    const tweetres = `select tweet,count(like_id) as likes,count(reply_id) as replies,date_time as dateTime from tweet INNER JOIN reply on tweet.tweet_id=reply.tweet_id INNER JOIN like on reply.tweet_id=like.tweet_id;`;
+    const tweetdb = await db.all(tweetres);
+    response.send(tweetdb);
+  }
 });
 
 module.exports = app;
