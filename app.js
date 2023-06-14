@@ -135,35 +135,35 @@ app.get("/user/followers/", authenticateToken, async (request, response) => {
 app.get("/tweets/:tweetId/", authenticateToken, async (request, response) => {
   let { username } = request;
   let { tweetId } = request.params;
-  const allnames = `SELECT * FROM follower INNER JOIN user on follower_user_id =user.user_id where user.username='${username}' AND following_user_id = (SELECT user_id FROM tweet WHERE tweet_id = ${tweetId});`;
-  const dbres = await db.all(allnames);
-  if (dbres === null) {
-    response.status(401);
-    response.send("Invalid Request");
-  } else {
-    const tweetres = `select tweet,count(like_id) as likes,count(reply_id) as replies,date_time as dateTime from tweet INNER JOIN reply on tweet.tweet_id=reply.tweet_id INNER JOIN like on reply.tweet_id=like.tweet_id;`;
-    const tweetdb = await db.all(tweetres);
-    response.send(tweetdb);
+  const userid = `SELECT user_id FROM user where username='${username}';`;
+  const dbres = await db.get(userid);
+  const tweetpostedid = `select tweet.user_id from tweet where tweet.tweet_id=${tweetId};`;
+  const tweets = await db.get(tweetpostedid);
+  console.log(tweets);
+  const followingids = `select * from follower INNER JOIN user on user.user_id = follower.following_user_id
+WHERE follower.follower_user_id=${dbres.user_id};`;
+  const followinglist = await db.all(followingids);
+  console.log(followinglist);
+  try {
+    const tweetres = `SELECT t.tweet, COUNT(l.like_id) AS likes, COUNT(r.reply_id) AS replies, t.date_time AS dateTime
+    FROM tweet AS t
+    LEFT JOIN follower AS f ON f.following_user_id = t.user_id
+    LEFT JOIN like AS l ON l.tweet_id = t.tweet_id
+    LEFT JOIN reply AS r ON r.tweet_id = t.tweet_id
+    WHERE f.follower_user_id = ${dbres.user_id}
+    GROUP BY t.tweet_id;`;
+    const tweetresq = await db.get(tweetres);
+    console.log(tweetresq);
+    if (
+      followinglist.some((each) => each.following_user_id === tweets.user_id)
+    ) {
+      response.send(tweetresq);
+    } else {
+      response.status(401);
+      response.send("Invalid Request");
+    }
+  } catch (error) {
+    console.log(error);
   }
-});
-
-//api9//
-app.get("/user/tweets/", authenticateToken, async (request, response) => {
-  let { username } = request;
-  const alltweetsq = `select tweet,count(like_id) as likes,count(reply_id) as replies,date_time as dateTime from tweet LEFT JOIN like on like.tweet_id=tweet.tweet_id LEFT JOIN reply on reply.tweet_id=tweet.tweet_id INNER JOIN user on tweet.user_id=user.user_id where user.username='${username}' GROUP BY tweet.tweet_id ORDER BY tweet.date_time DESC;`;
-  const alltweetsdb = await db.all(alltweetsq);
-  response.send(alltweetsdb);
-});
-
-//api10//
-app.post("/user/tweets/", authenticateToken, async (request, response) => {
-  let { username } = request;
-  const { tweet } = request.body;
-  const usernq = `select user_id from user where username='${username}';`;
-  const usernqdb = await db.get(usernq);
-  console.log(usernqdb.user_id);
-  const ctq = `Insert into tweet (tweet_id,tweet,user_id,date_time) values('${tweet}') where tweet.user_id=usernqdb.user_id;`;
-  const ctdb = await db.run(ctq);
-  response.send("Created a Tweet");
 });
 module.exports = app;
