@@ -51,3 +51,7 @@ Content-Type:application/json
    "tweet": "The Mornings..."
 }
 ###
+
+GET http://localhost:3000/tweets/tweet_id/likes/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNjg2NjAzMzQ2fQ.CZgtYxrVGzlc7aIc4aWH0xpeSKZF0bdg0RKOpY5hrpI
+###

@@ -167,6 +167,35 @@ GROUP BY t.tweet_id;`;
   }
 });
 
+//api7//
+app.get(
+  "/tweets/:tweetId/likes/",
+  authenticateToken,
+  async (request, response) => {
+    let { username } = request;
+    let { tweetId } = request.params;
+    const userid = `SELECT user_id FROM user where username='${username}';`;
+    const dbres = await db.get(userid);
+    const tweetpostedid = `select tweet.user_id from tweet where tweet.tweet_id=${tweetId};`;
+    const tweets = await db.get(tweetpostedid);
+    console.log(tweets);
+    const followingids = `select * from follower INNER JOIN user on user.user_id = follower.following_user_id
+WHERE follower.follower_user_id=${dbres.user_id};`;
+    const followinglist = await db.all(followingids);
+    const userswholikedtweetsq = `SELECT DISTINCT username from user JOIN like on user.user_id=like.user_id where like.tweet_id=${tweetId};`;
+    const userswholikedtweets = await db.all(userswholikedtweetsq);
+    if (
+      followinglist.some((each) => each.following_user_id === tweets.user_id)
+    ) {
+      const newres = userswholikedtweets.map((each) => each.username);
+      response.send({ likes: newres });
+    } else {
+      response.status(401);
+      response.send("Invalid Request");
+    }
+  }
+);
+
 //api9//
 app.get("/user/tweets/", authenticateToken, async (request, response) => {
   let { username } = request;
