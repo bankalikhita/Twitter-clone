@@ -145,13 +145,13 @@ WHERE follower.follower_user_id=${dbres.user_id};`;
   const followinglist = await db.all(followingids);
   console.log(followinglist);
   try {
-    const tweetres = `SELECT t.tweet, COUNT(l.like_id) AS likes, COUNT(r.reply_id) AS replies, t.date_time AS dateTime
+    const tweetres = `SELECT t.tweet, COUNT(DISTINCT l.like_id) AS likes, COUNT(DISTINCT r.reply_id) AS replies, t.date_time AS dateTime
     FROM tweet AS t
     LEFT JOIN follower AS f ON f.following_user_id = t.user_id
-    LEFT JOIN like AS l ON l.tweet_id = t.tweet_id
-    LEFT JOIN reply AS r ON r.tweet_id = t.tweet_id
-    WHERE f.follower_user_id = ${dbres.user_id}
-    GROUP BY t.tweet_id;`;
+LEFT JOIN like AS l ON l.tweet_id = t.tweet_id
+LEFT JOIN reply AS r ON r.tweet_id = t.tweet_id
+WHERE f.follower_user_id =${dbres.user_id}
+GROUP BY t.tweet_id;`;
     const tweetresq = await db.get(tweetres);
     console.log(tweetresq);
     if (
