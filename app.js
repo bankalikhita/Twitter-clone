@@ -166,4 +166,40 @@ GROUP BY t.tweet_id;`;
     console.log(error);
   }
 });
+
+//api9//
+app.get("/user/tweets/", authenticateToken, async (request, response) => {
+  let { username } = request;
+  const userid = `SELECT user_id FROM user where username='${username}';`;
+  const dbres = await db.get(userid);
+  const alltweetsq = `SELECT t.tweet, COUNT(DISTINCT l.like_id) AS likes, COUNT(DISTINCT r.reply_id) AS replies, t.date_time AS dateTime
+    FROM tweet AS t
+LEFT JOIN like AS l ON l.tweet_id = t.tweet_id
+LEFT JOIN reply AS r ON r.tweet_id = t.tweet_id
+WHERE t.user_id =${dbres.user_id}
+GROUP BY t.tweet_id;`;
+  const alltweet = await db.all(alltweetsq);
+  response.send(alltweet);
+});
+
+//api10//
+app.post("/user/tweets/", authenticateToken, async (request, response) => {
+  let { username } = request;
+  const { tweet } = request.body;
+  var today = new Date();
+  var date =
+    today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate();
+  var time =
+    today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+  var dateTime = date + " " + time;
+
+  console.log(dateTime);
+  const userid = `SELECT user_id FROM user where username='${username}';`;
+  const dbres = await db.get(userid);
+  const posttweetq = `insert into tweet (tweet,user_id,date_time) values('${tweet}',${dbres.user_id},'${dateTime}');`;
+  const posttweet = await db.run(posttweetq);
+  const newtweetId = this.lastId;
+  response.send("Created a Tweet");
+});
+
 module.exports = app;
